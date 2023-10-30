@@ -1,0 +1,162 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      body {
+        background-color: #2d3047;
+        font-family: "Atkinson Hyperlegible", sans-serif;
+        color: #fff;
+        margin: 0;
+        padding: 2rem 4rem;
+      }
+      form {
+        display: flex;
+        flex-direction: column;
+
+        & label {
+          font-weight: bold;
+        }
+
+        & input {
+          border-radius: 0.2rem;
+          padding: 0.5rem 1rem;
+          border: none;
+        }
+
+        & [type="text"] {
+          margin-bottom: 1rem;
+        }
+        & [type="submit"] {
+          background-color: #b0ff92;
+          border: none;
+          text-transform: uppercase;
+          font-weight: bold;
+          cursor: pointer;
+          transition: box-shadow 0.3s ease-in-out;
+          max-width: 29ch;
+
+          &:focus {
+            box-shadow: 0 0 0 0.3rem #d7ff796b;
+          }
+        }
+      }
+
+      h1 {
+        width: 100%;
+        text-align: center;
+      }
+
+      img {
+        border-radius: 1rem;
+        box-shadow: #6000ba44 0px 7px 29px 0px;
+        margin: 1rem;
+        max-width: 10rem;
+        max-height: 10rem;
+      }
+    </style>
+
+    <title>Url2Logo</title>
+  </head>
+  <body>
+    <h1>Url2Logo</h1>
+
+    <form id="form">
+      <label for="Url">URL</label>
+      <input type="text" name="url" id="url" />
+      <input type="submit" value="Submit" />
+    </form>
+
+    <script>
+      document.getElementById("form").addEventListener("submit", addLogo);
+
+      async function addLogo(e) {
+        e.preventDefault();
+
+        inputValue = document.getElementById("url").value;
+        logoURL = await getLogoFromURL(inputValue);
+
+        if (logoURL == null) {
+          console.log("No logo found");
+          return;
+        }
+
+        img = document.createElement("img");
+        img.src = logoURL;
+        img.alt = logoURL;
+        img.title = logoURL;
+        document.body.insertBefore(img, document.querySelector("img"));
+      }
+    </script>
+
+    <script>
+      async function getLogoFromURL(url) {
+        try {
+          response = await fetch(url, { redirect: "follow" });
+          data = await response.text();
+          return (logoURL = extractLogoURL(data, url));
+        } catch (error) {
+          console.error("Error fetching the webpage:", error);
+        }
+      }
+
+      function extractLogoURL(html, baseUrl) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+
+        // Priority 3: Look for apple touch icon (rel="apple-touch-icon")
+        const appleTouchIcon = doc.querySelector(
+          'link[rel="apple-touch-icon"]'
+        );
+        if (appleTouchIcon) {
+          return makeAbsoluteUrl(appleTouchIcon.getAttribute("href"), baseUrl);
+        }
+
+        // Priority 1: Look for a site logo within the webpage's content
+        const siteLogo = doc.querySelector('img[src*="logo"], [alt*="logo"]');
+        if (siteLogo) {
+          return makeAbsoluteUrl(siteLogo.getAttribute("src"), baseUrl);
+        }
+
+        // Priority 2: Check for meta tags specifying the logo
+        const metaTags = doc.querySelectorAll("meta");
+        for (const tag of metaTags) {
+          const property = tag.getAttribute("property");
+          if (
+            property &&
+            property.includes("image") &&
+            tag.getAttribute("content")
+          ) {
+            return makeAbsoluteUrl(tag.getAttribute("content"), baseUrl);
+          }
+        }
+
+        // Priority 4: Look for standard favicon icon (rel="icon")
+        const standardIcon = doc.querySelector('link[rel*="icon"]');
+        if (standardIcon) {
+          return makeAbsoluteUrl(standardIcon.getAttribute("href"), baseUrl);
+        }
+
+        return null;
+      }
+
+      function makeAbsoluteUrl(url, baseUrl) {
+        try {
+          const absoluteUrl = new URL(url, baseUrl);
+          return absoluteUrl.href;
+        } catch (error) {
+          console.error("Error converting URL to absolute:", error);
+          return null;
+        }
+      }
+    </script>
+  </body>
+</html>
