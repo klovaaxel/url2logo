@@ -100,7 +100,9 @@
     <script>
       async function getLogoFromURL(url) {
         try {
-          response = await fetch(url, { redirect: "follow" });
+          response = await fetch("https://corsproxy.io/?" + url, {
+              redirect: "follow",
+          });
           data = await response.text();
           return (logoURL = extractLogoURL(data, url));
         } catch (error) {
